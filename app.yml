@@ -1,0 +1,87 @@
+---
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      AvailabilityZones:
+        - String
+      ConnectionDrainingPolicy:
+        ConnectionDrainingPolicy
+      ConnectionSettings:
+        ConnectionSettings
+      HealthCheck:
+        HealthCheck
+      Instances:
+        - String
+      LBCookieStickinessPolicy:
+        - LBCookieStickinessPolicy
+      Listeners:
+        - Listener
+      LoadBalancerName: String
+      Policies:
+        - ElasticLoadBalancing Policy
+      Scheme: String,
+      SecurityGroups:
+        - Security Group
+      Subnets:
+        - String
+      Tags:
+        - Resource Tag
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: WebApp
+      AvailabilityZones:
+        - String
+      Cooldown: String
+      DesiredCapacity: String
+      HealthCheckGracePeriod: Integer
+      HealthCheckType: String
+      LaunchConfigurationName: WebApp
+      LoadBalancerNames:
+        - String
+      MaxSize: 1
+      MetricsCollection:
+        - MetricsCollection
+      MinSize: 1
+      NotificationConfigurations:
+        - NotificationConfiguration
+      PlacementGroup: String
+      Tags:
+        - TagProperty
+      TargetGroupARNs:
+        - String
+      TerminationPolicies:
+        - String
+      VPCZoneIdentifier:
+        - String
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      KeyName:
+        Ref: "KeyName"
+      ImageId:
+        Fn::FindInMap:
+          - "AWSRegionArch2AMI"
+          - Ref: "AWS::Region"
+          - Fn::FindInMap:
+              - "AWSInstanceType2Arch"
+              - Ref: "InstanceType"
+              - "Arch"
+      UserData:
+        Fn::Base64:
+          Ref: "WebServerPort"
+      SecurityGroups:
+        - Ref: "InstanceSecurityGroup"
+      InstanceType:
+        Ref: "InstanceType"
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            VolumeSize: "50"
+            VolumeType: "io1"
+            Iops: 200
+        - DeviceName: "/dev/sdm"
+          Ebs:
+            VolumeSize: "100"
+            DeleteOnTermination: "true"
