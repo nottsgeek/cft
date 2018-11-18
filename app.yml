@@ -1,87 +1,63 @@
 ---
 Resources:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: CFSecurityGroup
+      GroupDescription: CFSecurityGroup
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 8080
+        ToPort: 8080
+        CidrIp: 0.0.0.0/0
+      VpcId: "vpc-b40210cd"
   LoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
     Properties:
       AvailabilityZones:
-        - String
-      ConnectionDrainingPolicy:
-        ConnectionDrainingPolicy
+      - "us-west-2a"
       ConnectionSettings:
-        ConnectionSettings
+        IdleTimeout: 300
       HealthCheck:
-        HealthCheck
-      Instances:
-        - String
-      LBCookieStickinessPolicy:
-        - LBCookieStickinessPolicy
+        HealthyThreshold: 3
+        Interval: 30
+        Target: "HTTP:8080/"
+        Timeout: 5
+        UnhealthyThreshold: 5
       Listeners:
-        - Listener
-      LoadBalancerName: String
-      Policies:
-        - ElasticLoadBalancing Policy
-      Scheme: String,
+      - LoadBalancerPort: '8080'
+        InstancePort: '8080'
+        Protocol: HTTP
+      LoadBalancerName: CFTELB
       SecurityGroups:
-        - Security Group
-      Subnets:
-        - String
-      Tags:
-        - Resource Tag
+      - Ref: "InstanceSecurityGroup"
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      KeyName: "webserver"
+      ImageId: "ami-28e07e50"
+      SecurityGroups:
+        - Ref: "InstanceSecurityGroup"
+      InstanceType: "t2.micro"
+      UserData:
+        Fn::Base64: |
+           #!/bin/bash
+           yum install wget git -y
+           git clone https://github.com/nottsgeek/jenkins_config.git
+           wget https://rpmfind.net/linux/centos/7.5.1804/extras/x86_64/Packages/ansible-2.4.2.0-2.el7.noarch.rpm
+           rpm -ivh ansible-2.4.2.0-2.el7.noarch.rpm --nodeps
+           ansible-playbook jenkins_config/jenkins-deployer.yml
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       AutoScalingGroupName: WebApp
       AvailabilityZones:
-        - String
-      Cooldown: String
-      DesiredCapacity: String
-      HealthCheckGracePeriod: Integer
-      HealthCheckType: String
-      LaunchConfigurationName: WebApp
+      - "us-west-2a"
+      DesiredCapacity: 1
+      HealthCheckGracePeriod: 10
+      LaunchConfigurationName:
+        Ref: "LaunchConfig"
       LoadBalancerNames:
-        - String
+      - Ref: "LoadBalancer"
       MaxSize: 1
-      MetricsCollection:
-        - MetricsCollection
       MinSize: 1
-      NotificationConfigurations:
-        - NotificationConfiguration
-      PlacementGroup: String
-      Tags:
-        - TagProperty
-      TargetGroupARNs:
-        - String
-      TerminationPolicies:
-        - String
-      VPCZoneIdentifier:
-        - String
-  LaunchConfig:
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      KeyName:
-        Ref: "KeyName"
-      ImageId:
-        Fn::FindInMap:
-          - "AWSRegionArch2AMI"
-          - Ref: "AWS::Region"
-          - Fn::FindInMap:
-              - "AWSInstanceType2Arch"
-              - Ref: "InstanceType"
-              - "Arch"
-      UserData:
-        Fn::Base64:
-          Ref: "WebServerPort"
-      SecurityGroups:
-        - Ref: "InstanceSecurityGroup"
-      InstanceType:
-        Ref: "InstanceType"
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sda1"
-          Ebs:
-            VolumeSize: "50"
-            VolumeType: "io1"
-            Iops: 200
-        - DeviceName: "/dev/sdm"
-          Ebs:
-            VolumeSize: "100"
-            DeleteOnTermination: "true"
